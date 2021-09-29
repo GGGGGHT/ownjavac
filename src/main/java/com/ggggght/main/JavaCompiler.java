@@ -1,17 +1,18 @@
 package com.ggggght.main;
 
+import com.ggggght.main.file.RegularFileObject;
+import com.sun.tools.javac.file.BaseFileObject;
+import com.sun.tools.javac.file.JavacFileManager;
 import com.sun.tools.javac.main.OptionHelper;
+import com.sun.tools.javac.util.ListBuffer;
 import com.sun.tools.javac.util.Log;
 
 import java.io.File;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 
 import com.sun.tools.javac.util.Log.PrefixKind;
-import com.sun.tools.javac.util.Log.WriterKind;
-import com.sun.tools.javac.util.Options;
+
+import javax.tools.JavaFileObject;
 
 import static com.ggggght.main.Option.*;
 
@@ -27,6 +28,8 @@ public class JavaCompiler {
 	private JOptions options = null;
 	private OptionHelper optionHelper;
 	private Set<File> fileNames = null;
+	private JavacFileManager fileManager;
+	public ListBuffer<String> classnames = null;
 
 	// {
 	// 	optionHelper = new OptionHelper() {
@@ -57,78 +60,14 @@ public class JavaCompiler {
 	// 	};
 	// }
 
-	public Result compile(String[] args,
-	                      String[] classNames,
-	                      OptionHelper helper) {
-		if (args.length == 0 && classNames.length == 0) {
-			HELP.process(helper, "-help");
-			return Result.CMDERR;
-		}
 
-		// 处理命令行参数
-		final Collection<File> files = processArgs(CommandLine.parse(args), classNames);
 
-		if (Objects.isNull(files)) {
-			return Result.CMDERR;
-		}
-		if (files.isEmpty()) {
-			if (options.isSet(HELP)) {
-				return Result.OK;
-			}
-
-			return Result.CMDERR;
-		}
-
-		return Result.OK;
+	private static JavaCompiler instance() {
+		return new JavaCompiler();
 	}
 
 
 
-	/**
-	 * 处理参数
-	 *
-	 * @param args
-	 * @param classNames
-	 */
-	private Collection<File> processArgs(String[] args, String[] classNames) {
-		int i = 0;
-		while (i < args.length) {
-			final String arg = args[i++];
-
-			Option option = null;
-			if (arg.length() > 0) {
-				final int firstOptionToCheck = arg.charAt(0) == '-' ? 0 : recognizedOptions.length - 1;
-				for (int j = firstOptionToCheck; j < recognizedOptions.length; j++) {
-					if (recognizedOptions[j].matches(arg)) {
-						option = recognizedOptions[j];
-						break;
-					}
-				}
-			}
-
-			if (Objects.isNull(option)) {
-				return null;
-			}
-
-			if (option.hasArg()) {
-				if (i == args.length) {
-					error("err.req.arg", args);
-					return null;
-				}
-				final String operand = args[i++];
-				if (option.process(optionHelper, arg, operand)) {
-					return null;
-				}
-			} else {
-				if (option.process(optionHelper, arg)) {
-					return null;
-				}
-			}
-		}
-
-
-		return fileNames;
-	}
 
 	private void error(String key, Object... args) {
 		warning(key, args);
