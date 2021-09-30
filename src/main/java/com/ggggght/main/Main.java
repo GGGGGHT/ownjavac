@@ -5,8 +5,7 @@ import com.sun.tools.doclint.DocLint;
 import com.sun.tools.javac.api.BasicJavacTask;
 import com.sun.tools.javac.file.CacheFSInfo;
 import com.sun.tools.javac.file.JavacFileManager;
-import com.sun.tools.javac.main.CommandLine;
-import com.sun.tools.javac.main.JavaCompiler;
+// import com.sun.tools.javac.main.CommandLine;
 import com.sun.tools.javac.main.OptionHelper;
 import com.sun.tools.javac.processing.AnnotationProcessingError;
 import com.sun.tools.javac.processing.JavacProcessingEnvironment;
@@ -18,13 +17,13 @@ import javax.annotation.processing.Processor;
 import javax.tools.JavaFileManager;
 import javax.tools.JavaFileObject;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.*;
 
-import static com.ggggght.main.Option.HELP;
-import static com.sun.tools.javac.main.Option.*;
-import static com.sun.tools.javac.main.Option.XDOCLINT_CUSTOM;
+import static com.ggggght.main.Option.*;
+
 
 public class Main {
 	private String ownName;
@@ -34,7 +33,7 @@ public class Main {
 	public Set<File> filenames = null;
 	public ListBuffer<String> classnames = null;
 	private Options options = null;
-	private com.ggggght.main.Option[] recognizedOptions = com.ggggght.main.Option.getJavaCompilerOptions().toArray(new com.ggggght.main.Option[0]);
+	private Option[] recognizedOptions = Option.getJavaCompilerOptions().toArray(new Option[0]);
 
 	public Main(String name) {
 		this(name, new PrintWriter(System.err, true));
@@ -85,17 +84,12 @@ public class Main {
 
 		filenames = new LinkedHashSet<File>();
 		classnames = new ListBuffer<String>();
-		com.sun.tools.javac.main.JavaCompiler comp = null;
-		/*
-		 * TODO: Logic below about what is an acceptable command line
-		 * should be updated to take annotation processing semantics
-		 * into account.
-		 */
+		JavaCompiler comp = null;
 		try {
 			if (args.length == 0
 					&& (classNames == null || classNames.length == 0)
 					&& fileObjects.isEmpty()) {
-				Option.HELP.process(optionHelper, "-help");
+				HELP.process(optionHelper, "-help");
 				return Result.CMDERR;
 			}
 
@@ -107,15 +101,15 @@ public class Main {
 					return Result.CMDERR;
 				} else if (files.isEmpty() && fileObjects.isEmpty() && classnames.isEmpty()) {
 					// it is allowed to compile nothing if just asking for help or version info
-					if (options.isSet(HELP.argsNameKey)
-							|| options.isSet(X)
-							|| options.isSet(VERSION)
-							|| options.isSet(FULLVERSION))
+					if (options.isSet(HELP.argsNameKey))
+							// || options.isSet(X)
+							// || options.isSet(VERSION)
+							// || options.isSet(FULLVERSION))
 						return Result.OK;
 
 					return Result.CMDERR;
 				}
-			} catch (java.io.FileNotFoundException e) {
+			} catch (Exception e) {
 				// warning("err.file.not.found", e.getMessage());
 				return Result.SYSERR;
 			}
@@ -134,31 +128,7 @@ public class Main {
 
 			// FIXME: this code will not be invoked if using JavacTask.parse/analyze/generate
 			// invoke any available plugins
-			comp = com.sun.tools.javac.main.JavaCompiler.instance(context);
-
-			// FIXME: this code will not be invoked if using JavacTask.parse/analyze/generate
-			String xdoclint = options.get(XDOCLINT);
-			String xdoclintCustom = options.get(XDOCLINT_CUSTOM);
-			if (xdoclint != null || xdoclintCustom != null) {
-				Set<String> doclintOpts = new LinkedHashSet<String>();
-				if (xdoclint != null)
-					doclintOpts.add(DocLint.XMSGS_OPTION);
-				if (xdoclintCustom != null) {
-					for (String s : xdoclintCustom.split("\\s+")) {
-						if (s.isEmpty())
-							continue;
-						doclintOpts.add(s.replace(XDOCLINT_CUSTOM.text, DocLint.XMSGS_CUSTOM_PREFIX));
-					}
-				}
-				if (!(doclintOpts.size() == 1
-						&& doclintOpts.iterator().next().equals(DocLint.XMSGS_CUSTOM_PREFIX + "none"))) {
-					JavacTask t = BasicJavacTask.instance(context);
-					// standard doclet normally generates H1, H2
-					doclintOpts.add(DocLint.XIMPLICIT_HEADERS + "2");
-					new DocLint().init(t, doclintOpts.toArray(new String[doclintOpts.size()]));
-					comp.keepComments = true;
-				}
-			}
+			comp = JavaCompiler.instance(context);
 
 			fileManager = context.get(JavaFileManager.class);
 
@@ -188,18 +158,6 @@ public class Main {
 				}
 			}
 
-			if (comp.errorCount() != 0)
-				return Result.ERROR;
-		} catch (IOException ex) {
-			return Result.SYSERR;
-		} catch (OutOfMemoryError ex) {
-			return Result.SYSERR;
-		} catch (StackOverflowError ex) {
-			return Result.SYSERR;
-		} catch (FatalError ex) {
-			return Result.SYSERR;
-		} catch (AnnotationProcessingError ex) {
-			return Result.SYSERR;
 		} catch (ClientCodeException ex) {
 			// as specified by javax.tools.JavaCompiler#getTask
 			// and javax.tools.JavaCompiler.CompilationTask#call
@@ -210,8 +168,7 @@ public class Main {
 			// Nasty.  If we've already reported an error, compensate
 			// for buggy compiler error recovery by swallowing thrown
 			// exceptions.
-			if (comp == null || comp.errorCount() == 0 ||
-					options == null || options.isSet("dev"))
+			if (comp == null || options == null || options.isSet("dev"))
 			return Result.ABNORMAL;
 		} finally {
 			if (comp != null) {
@@ -227,26 +184,26 @@ public class Main {
 		return Result.OK;
 	}
 
-	public com.ggggght.main.Result compile(String[] args,
+	public Result compile(String[] args,
 	                                       String[] classNames,
 	                                       OptionHelper helper) {
 		if (args.length == 0 && classNames.length == 0) {
 			HELP.process(helper, "-help");
-			return com.ggggght.main.Result.CMDERR;
+			return Result.CMDERR;
 		}
 
 		// 处理命令行参数
-		final Collection<File> files = processArgs(com.ggggght.main.CommandLine.parse(args), classNames);
+		final Collection<File> files = processArgs(CommandLine.parse(args), classNames);
 
 		if (Objects.isNull(files)) {
-			return com.ggggght.main.Result.CMDERR;
+			return Result.CMDERR;
 		}
 		if (files.isEmpty()) {
 			if (options.isSet(HELP.argsNameKey)) {
-				return com.ggggght.main.Result.OK;
+				return Result.OK;
 			}
 
-			return com.ggggght.main.Result.CMDERR;
+			return Result.CMDERR;
 		}
 
 		JavaCompiler comp = JavaCompiler.instance(null);
@@ -256,9 +213,10 @@ public class Main {
 		for (JavaFileObject fo : dfm.getJavaFileObjectsFromFiles(files)) {
 			fileObjects.add(fo);
 		}
-		com.sun.tools.javac.util.List<String> classnames = this.classnames.toList();
+		List<String> classnames = this.classnames.toList();
 		comp.compile(fileObjects, classnames, null);
-		return com.ggggght.main.Result.OK;
+		
+		return Result.OK;
 	}
 
 	/**
