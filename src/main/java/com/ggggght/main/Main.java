@@ -102,9 +102,9 @@ public class Main {
 				} else if (files.isEmpty() && fileObjects.isEmpty() && classnames.isEmpty()) {
 					// it is allowed to compile nothing if just asking for help or version info
 					if (options.isSet(HELP.argsNameKey))
-							// || options.isSet(X)
-							// || options.isSet(VERSION)
-							// || options.isSet(FULLVERSION))
+						// || options.isSet(X)
+						// || options.isSet(VERSION)
+						// || options.isSet(FULLVERSION))
 						return Result.OK;
 
 					return Result.CMDERR;
@@ -169,7 +169,7 @@ public class Main {
 			// for buggy compiler error recovery by swallowing thrown
 			// exceptions.
 			if (comp == null || options == null || options.isSet("dev"))
-			return Result.ABNORMAL;
+				return Result.ABNORMAL;
 		} finally {
 			if (comp != null) {
 				try {
@@ -185,8 +185,8 @@ public class Main {
 	}
 
 	public Result compile(String[] args,
-	                                       String[] classNames,
-	                                       OptionHelper helper) {
+	                      String[] classNames,
+	                      OptionHelper helper) {
 		if (args.length == 0 && classNames.length == 0) {
 			HELP.process(helper, "-help");
 			return Result.CMDERR;
@@ -215,7 +215,7 @@ public class Main {
 		}
 		List<String> classnames = this.classnames.toList();
 		comp.compile(fileObjects, classnames, null);
-		
+
 		return Result.OK;
 	}
 
@@ -283,46 +283,4 @@ public class Main {
 
 	private OptionHelper optionHelper = null;
 
-	// 		new OptionHelper() {
-	// 	@Override
-	// 	public String get(Option option) {
-	// 		return options.get(option);
-	// 	}
-	//
-	// 	@Override
-	// 	public void put(String name, String value) {
-	// 		options.put(name, value);
-	// 	}
-	//
-	// 	@Override
-	// 	public void remove(String name) {
-	// 		options.remove(name);
-	// 	}
-	//
-	// 	@Override
-	// 	public Log getLog() {
-	// 		return log;
-	// 	}
-	//
-	// 	@Override
-	// 	public String getOwnName() {
-	// 		return ownName;
-	// 	}
-	//
-	// 	@Override
-	// 	public void error(String key, Object... args) {
-	// 		this.error(key, args);
-	// 	}
-	//
-	// 	@Override
-	// 	public void addFile(File f) {
-	// 		filenames.add(f);
-	// 	}
-	//
-	// 	@Override
-	// 	public void addClassName(String s) {
-	// 		classnames.append(s);
-	// 	}
-	//
-	// };
 }
